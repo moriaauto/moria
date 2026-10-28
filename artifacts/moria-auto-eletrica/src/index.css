@@ -104,7 +104,6 @@
 .container-wide { width: min(1180px, calc(100% - 48px)); margin-inline: auto; }
 .display { font-family: 'Barlow Condensed', sans-serif; }
 .eyebrow { display: inline-flex; align-items: center; gap: 10px; color: var(--blue); font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-.eyebrow::before { content: ''; width: 25px; height: 2px; background: currentColor; }
 .section-pad { padding: 100px 0; }
 .header-shell { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.96); backdrop-filter: blur(14px); border-bottom: 1px solid #e5edf7; }
 .nav-link { position: relative; padding: 10px 0; color: #334155; font-size: .86rem; font-weight: 600; transition: color .2s ease; }
@@ -127,7 +126,6 @@
 .hero-stamp { position: absolute; bottom: 5%; left: 1%; display: flex; align-items: center; gap: 11px; padding: 14px 18px; background: white; color: var(--navy); box-shadow: 0 12px 35px rgba(0,0,0,.18); font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .hero-stamp svg { color: var(--blue); }
 .hero-note { display: inline-flex; align-items: center; gap: 10px; color: rgba(255,255,255,.8); font-size: .8rem; letter-spacing: .04em; }
-.hero-note::before { content: ''; width: 34px; height: 1px; background: #6db6ff; }
 .service-section { background: #f5f9ff; }
 .section-heading { max-width: 680px; margin-bottom: 44px; }
 .section-heading h2 { margin: 14px 0; color: var(--navy); font-size: clamp(2.6rem, 4vw, 4rem); line-height: .98; font-weight: 700; }
