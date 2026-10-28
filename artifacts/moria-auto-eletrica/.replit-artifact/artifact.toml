@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Moriá Auto Elétrica"
+description = "Site institucional mobile-first da Moriá Auto Elétrica e Ar Condicionado Automotivo, em Rondonópolis-MT, com serviços, localização, horários e contato direto para orçamentos pelo WhatsApp."
+version = "1.0.0"
+id = "artifacts/moria-auto-eletrica"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20230
+
+[services.development]
+run = "pnpm --filter @workspace/moria-auto-eletrica run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/moria-auto-eletrica", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/moria-auto-eletrica/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20230"
+BASE_PATH = "/"
