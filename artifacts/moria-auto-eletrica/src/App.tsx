@@ -4,20 +4,23 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
+import AdminPage from '@/pages/admin';
+import { GallerySlider } from '@/components/gallery-slider';
+import { SiteProvider, useSiteData } from '@/lib/site-context';
 import {
-  ArrowDownRight,
   ArrowRight,
+  BatteryCharging,
   Check,
   Clock3,
   Fan,
   Gauge,
+  Lock,
   MapPin,
-  Menu,
   Phone,
   Settings2,
   ShieldCheck,
   Snowflake,
-  X,
+  Wrench,
   Zap,
 } from 'lucide-react';
 import {
@@ -28,10 +31,18 @@ import {
 } from 'wouter';
 
 const queryClient = new QueryClient();
-const whatsappMessage = 'Olá! Vi o site da Moriá e gostaria de solicitar um orçamento para o meu veículo.';
-const whatsappUrl = `https://wa.me/5566996954476?text=${encodeURIComponent(whatsappMessage)}`;
-const address = 'Avenida Lídio Magalhães, 492, Jardim Primavera, Rondonópolis - MT, CEP 78.725-250';
-const mapQuery = encodeURIComponent(address);
+
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' | 'false' }>> = {
+  Snowflake,
+  Fan,
+  Zap,
+  Gauge,
+  Settings2,
+  Wrench,
+  BatteryCharging,
+  ShieldCheck,
+  Check,
+};
 
 const navItems = [
   { href: '#inicio', label: 'Início' },
@@ -41,7 +52,20 @@ const navItems = [
   { href: '#contato', label: 'Contato' },
 ];
 
-function WhatsAppLink({ children, className, testId }: { children: ReactNode; className: string; testId: string }) {
+function WhatsAppLink({
+  children,
+  className,
+  testId,
+  whatsappNumber,
+  whatsappMessage,
+}: {
+  children: ReactNode;
+  className: string;
+  testId: string;
+  whatsappNumber: string;
+  whatsappMessage: string;
+}) {
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
   return (
     <a
       href={whatsappUrl}
@@ -56,99 +80,12 @@ function WhatsAppLink({ children, className, testId }: { children: ReactNode; cl
   );
 }
 
-function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  return (
-    <header className="header-shell">
-      <div className="container-wide header-inner flex min-h-[82px] items-center justify-between">
-        <a href="#inicio" aria-label="Moriá Auto Elétrica — início" data-testid="link-logo-home">
-          <img className="header-logo block w-[184px]" src="/moria-logo.jpeg" alt="Moriá Auto Elétrica e Ar Condicionado Automotivo" width={1024} height={512} />
-        </a>
-        <nav className="desktop-nav flex items-center gap-8" aria-label="Navegação principal">
-          {navItems.map((item) => (
-            <a key={item.href} className="nav-link" href={item.href} data-testid={`link-nav-${item.href.slice(1)}`}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        <WhatsAppLink className="header-cta btn-primary !min-h-[44px] !px-4 !text-[.82rem]" testId="link-header-whatsapp">
-          <Phone size={16} aria-hidden="true" />
-          Orçamento imediato
-        </WhatsAppLink>
-        <button
-          type="button"
-          className="mobile-menu"
-          aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
-          aria-expanded={menuOpen}
-          aria-controls="mobile-navigation"
-          onClick={() => setMenuOpen((open) => !open)}
-          data-testid="button-mobile-menu"
-        >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
-      {menuOpen && (
-        <nav id="mobile-navigation" className="mobile-nav" aria-label="Navegação móvel">
-          {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              data-testid={`link-mobile-${item.href.slice(1)}`}
-              onClick={() => setMenuOpen(false)}
-            >
-              {item.label}
-            </a>
-          ))}
-          <WhatsAppLink className="btn-primary mt-4" testId="link-mobile-whatsapp">
-            <Phone size={16} aria-hidden="true" />
-            Solicitar orçamento
-          </WhatsAppLink>
-        </nav>
-      )}
-    </header>
-  );
-}
-
-const services = [
-  {
-    number: '01',
-    icon: Snowflake,
-    title: 'Ar-condicionado automotivo',
-    description: 'Diagnóstico, detecção de vazamentos, limpeza de dutos e revisão completa do sistema.',
-    foot: 'Conforto em cada trajeto',
-  },
-  {
-    number: '02',
-    icon: Fan,
-    title: 'Recarga de gás e revisão',
-    description: 'Recarga de fluido refrigerante e revisão do ar-condicionado para recuperar o desempenho.',
-    foot: 'Sistema de climatização',
-  },
-  {
-    number: '03',
-    icon: Zap,
-    title: 'Motor de partida',
-    description: 'Reparo e manutenção do motor de partida para uma partida segura e confiável.',
-    foot: 'Partida sem surpresas',
-  },
-  {
-    number: '04',
-    icon: Gauge,
-    title: 'Alternador',
-    description: 'Manutenção e teste do alternador para verificar a geração e o carregamento elétrico.',
-    foot: 'Energia para o veículo',
-  },
-  {
-    number: '05',
-    icon: Settings2,
-    title: 'Elétrica automotiva completa',
-    description: 'Revisão da injeção eletrônica, painel, chicotes e sistemas digitais em veículos leves e pesados.',
-    foot: 'Diagnóstico preciso',
-  },
-];
-
 function Home() {
+  const { settings, services } = useSiteData();
+  const [logoGlow, setLogoGlow] = useState(false);
+  const [heroGlow, setHeroGlow] = useState(false);
+  const mapQuery = encodeURIComponent(settings.googleMapsQuery || settings.address);
+
   useEffect(() => {
     document.title = 'Moriá Auto Elétrica | Auto elétrica em Rondonópolis';
     document.documentElement.lang = 'pt-BR';
@@ -162,13 +99,6 @@ function Home() {
       'content',
       'Auto elétrica em Rondonópolis e ar condicionado automotivo Jardim Primavera Rondonópolis. Diagnóstico, manutenção e reparos para veículos leves e pesados.',
     );
-    let keywords = document.querySelector('meta[name="keywords"]');
-    if (!keywords) {
-      keywords = document.createElement('meta');
-      keywords.setAttribute('name', 'keywords');
-      document.head.appendChild(keywords);
-    }
-    keywords.setAttribute('content', 'Auto elétrica em Rondonópolis, Ar condicionado automotivo Jardim Primavera Rondonópolis, elétrica automotiva, Rondonópolis MT');
   }, []);
 
   return (
@@ -176,56 +106,68 @@ function Home() {
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:p-3 focus:text-blue-900">
         Pular para o conteúdo
       </a>
-      <Header />
+
       <main id="conteudo">
+        {/* SEÇÃO INÍCIO (HERO) */}
         <section className="hero" id="inicio" aria-labelledby="hero-title">
           <div className="container-wide hero-grid">
             <div className="reveal">
-              <span className="hero-note">Moriá Auto Elétrica · Rondonópolis / MT</span>
               <h1 className="display" id="hero-title">
-                Especialistas em Elétrica e Ar Condicionado Automotivo em Rondonópolis-MT.
+                {settings.heroTitle}
               </h1>
               <p className="hero-lead">
-                Manutenção, diagnóstico e reparos de alta precisão para veículos de linha leve e pesada. Qualidade, confiança e compromisso.
+                {settings.heroLead}
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <WhatsAppLink className="btn-primary" testId="link-hero-whatsapp">
-                  Solicitar orçamento no WhatsApp <ArrowRight size={18} aria-hidden="true" />
-                </WhatsAppLink>
-                <a className="btn-outline !border-white/40 !text-white hover:!bg-white/10" href="#servicos" data-testid="link-hero-services">
-                  Conhecer nossos serviços <ArrowDownRight size={17} aria-hidden="true" />
-                </a>
-              </div>
             </div>
             <div className="hero-visual" aria-label="Identidade visual da Moriá Auto Elétrica">
-              <div className="hero-logo-wrap">
-                <img src="/moria-logo.jpeg" alt="Logo Moriá Auto Elétrica e Ar Condicionado Automotivo" width={1024} height={512} />
-              </div>
-              <div className="hero-stamp">
-                <ShieldCheck size={20} aria-hidden="true" />
-                Leves e pesados
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setHeroGlow((prev) => !prev)}
+                onKeyDown={(e) => e.key === 'Enter' && setHeroGlow((prev) => !prev)}
+                className="hero-logo-link"
+                aria-label="Logo Moriá Auto Elétrica"
+              >
+                <img
+                  src="/moria-logo-clean.png"
+                  alt="Logo Moriá Auto Elétrica e Ar Condicionado Automotivo"
+                  className={`hero-logo-pure${heroGlow ? ' glow-active' : ''}`}
+                  width={1024}
+                  height={512}
+                />
               </div>
             </div>
           </div>
         </section>
 
+        {/* SEÇÃO SERVIÇOS (DINÂMICA) */}
         <section id="servicos" className="service-section section-pad" aria-labelledby="services-title">
           <div className="container-wide">
             <div className="section-heading">
-              <span className="eyebrow">Serviços especializados</span>
-              <h2 className="display" id="services-title">Cuidado técnico para seguir em frente.</h2>
-              <p>Da falha elétrica ao ar que não gela: avaliamos cada sistema com atenção e explicamos o que o seu veículo precisa.</p>
+              <span className="eyebrow">{settings.servicesEyebrow}</span>
+              <h2 className="display" id="services-title">{settings.servicesTitle}</h2>
+              <p>{settings.servicesSubtitle}</p>
             </div>
             <div className="service-grid">
-              {services.map((service) => {
-                const Icon = service.icon;
+              {services.map((service, index) => {
+                const IconComponent = ICON_MAP[service.icon] || Wrench;
                 return (
-                  <article className="service-card" key={service.number} data-testid={`card-service-${service.number}`}>
-                    <span className="service-number">{service.number}</span>
-                    <div className="service-icon"><Icon size={24} strokeWidth={1.8} aria-hidden="true" /></div>
+                  <article
+                    className="service-card"
+                    key={service.id || index}
+                    data-testid={`card-service-${index}`}
+                  >
+                    <div className="service-icon">
+                      <IconComponent size={24} strokeWidth={1.8} aria-hidden="true" />
+                    </div>
                     <h3>{service.title}</h3>
                     <p>{service.description}</p>
-                    <div className="service-foot"><Check size={15} aria-hidden="true" />{service.foot}</div>
+                    {service.foot && (
+                      <div className="service-foot">
+                        <Check size={15} aria-hidden="true" />
+                        {service.foot}
+                      </div>
+                    )}
                   </article>
                 );
               })}
@@ -233,75 +175,89 @@ function Home() {
           </div>
         </section>
 
+        {/* SEÇÃO CONFIANÇA */}
         <section className="trust-band" aria-labelledby="trust-title">
           <div className="container-wide trust-inner">
             <div>
-              <span className="eyebrow">Nosso jeito de trabalhar</span>
-              <h2 className="display" id="trust-title">Diagnóstico claro. Serviço bem feito.</h2>
+              <span className="eyebrow">{settings.trustEyebrow}</span>
+              <h2 className="display" id="trust-title">{settings.trustTitle}</h2>
             </div>
             <div className="trust-list">
-              <div className="trust-item"><Check size={18} aria-hidden="true" /><span>Atendimento especializado em elétrica e climatização automotiva</span></div>
-              <div className="trust-item"><Check size={18} aria-hidden="true" /><span>Equipamentos modernos de diagnóstico</span></div>
-              <div className="trust-item"><Check size={18} aria-hidden="true" /><span>Orçamentos explicados com clareza</span></div>
-              <div className="trust-item"><Check size={18} aria-hidden="true" /><span>Agilidade e transparência em cada etapa</span></div>
+              {settings.trustItems.map((item, idx) => (
+                <div className="trust-item" key={idx}>
+                  <Check size={18} aria-hidden="true" />
+                  <span>{item}</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
+        {/* SEÇÃO SOBRE NÓS COM MOLDURA DE SLIDER DE FOTOS */}
         <section id="sobre" className="about-section section-pad" aria-labelledby="about-title">
           <div className="container-wide about-grid">
-            <div className="about-art" aria-hidden="true">
-              <div className="art-mark"><Zap size={54} strokeWidth={1.4} /></div>
-              <span className="art-label">Precisão que move</span>
+            {/* Moldura de Galeria com Slider Automático */}
+            <div className="about-visual" aria-label="Galeria da oficina Moriá">
+              <GallerySlider />
             </div>
+
             <div className="about-copy">
-              <span className="eyebrow">Sobre nós</span>
-              <h2 className="display" id="about-title">Especialistas para cuidar do que faz seu veículo funcionar.</h2>
-              <p>
-                A Moriá Auto Elétrica e Ar Condicionado Automotivo atende Rondonópolis com foco em diagnóstico preciso e manutenção responsável. Cuidamos dos sistemas elétricos e de climatização de veículos de linha leve e pesada.
-              </p>
-              <p>
-                Aqui, você recebe orientação objetiva, um orçamento claro e um serviço conduzido com agilidade e transparência.
-              </p>
+              <span className="eyebrow">{settings.aboutEyebrow}</span>
+              <h2 className="display" id="about-title">{settings.aboutTitle}</h2>
+              <p>{settings.aboutParagraph1}</p>
+              {settings.aboutParagraph2 && <p>{settings.aboutParagraph2}</p>}
               <div className="about-points">
-                <div className="about-point"><Check size={17} aria-hidden="true" /> Diagnóstico com equipamentos modernos</div>
-                <div className="about-point"><Check size={17} aria-hidden="true" /> Atendimento para linha leve e pesada</div>
-                <div className="about-point"><Check size={17} aria-hidden="true" /> Explicação clara antes do reparo</div>
+                {settings.aboutPoints.map((point, idx) => (
+                  <div className="about-point" key={idx}>
+                    <Check size={17} aria-hidden="true" />
+                    <span>{point}</span>
+                  </div>
+                ))}
               </div>
-              <WhatsAppLink className="btn-primary" testId="link-about-whatsapp">
-                Converse com a equipe <ArrowRight size={17} aria-hidden="true" />
-              </WhatsAppLink>
             </div>
           </div>
         </section>
 
+        {/* SEÇÃO CONTATO */}
         <section className="contact-band" id="contato" aria-labelledby="contact-title">
           <div className="container-wide contact-inner">
             <div>
-              <span className="eyebrow !text-[#91caff]">Vamos resolver?</span>
-              <h2 className="display" id="contact-title">Conte com uma avaliação técnica.</h2>
-              <p>Seu carro apresentou falhas na elétrica ou o ar-condicionado parou de gelar? Fale agora mesmo com nossa equipe técnica.</p>
+              <span className="eyebrow !text-[#91caff]">{settings.contactEyebrow}</span>
+              <h2 className="display" id="contact-title">{settings.contactTitle}</h2>
+              <p>{settings.contactSubtitle}</p>
             </div>
             <div className="contact-action">
-              <WhatsAppLink className="btn-primary" testId="link-contact-whatsapp">
-                <Phone size={18} aria-hidden="true" /> Falar com técnico via WhatsApp
+              <WhatsAppLink
+                className="btn-primary"
+                testId="link-contact-whatsapp"
+                whatsappNumber={settings.whatsappNumber}
+                whatsappMessage={settings.whatsappMessage}
+              >
+                <Phone size={18} aria-hidden="true" />
+                {settings.contactActionText}
               </WhatsAppLink>
               <p className="!mt-3 !text-sm">Atendimento direto pelo WhatsApp</p>
             </div>
           </div>
         </section>
 
+        {/* SEÇÃO LOCALIZAÇÃO */}
         <section id="localizacao" className="location-section section-pad" aria-labelledby="location-title">
           <div className="container-wide location-grid">
             <div className="location-copy">
-              <span className="eyebrow">Estamos por aqui</span>
-              <h2 className="display" id="location-title">Visite a Moriá.</h2>
+              <span className="eyebrow">{settings.locationEyebrow}</span>
+              <h2 className="display" id="location-title">{settings.locationTitle}</h2>
               <div className="info-block">
                 <div className="info-icon"><MapPin size={21} aria-hidden="true" /></div>
                 <div>
                   <strong>Endereço</strong>
-                  <p>{address}</p>
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`} target="_blank" rel="noopener noreferrer" data-testid="link-open-map">
+                  <p>{settings.address}</p>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="link-open-map"
+                  >
                     Abrir rota no Google Maps <ArrowRight size={14} className="inline" aria-hidden="true" />
                   </a>
                 </div>
@@ -310,20 +266,29 @@ function Home() {
                 <div className="info-icon"><Clock3 size={21} aria-hidden="true" /></div>
                 <div>
                   <strong>Horário de atendimento</strong>
-                  <p>Segunda a Sexta-feira,<br />07:30 às 11:00 e 13:00 às 18:00.</p>
+                  <p>{settings.openingHours}</p>
                 </div>
               </div>
               <div className="info-block">
                 <div className="info-icon"><Phone size={20} aria-hidden="true" /></div>
                 <div>
                   <strong>Telefone e WhatsApp</strong>
-                  <p><a href="tel:+5566996954476" data-testid="link-phone">(66) 99695-4476</a></p>
+                  <p>
+                    <WhatsAppLink
+                      className="hover:text-blue-600 transition"
+                      testId="link-phone"
+                      whatsappNumber={settings.whatsappNumber}
+                      whatsappMessage={settings.whatsappMessage}
+                    >
+                      {settings.phone}
+                    </WhatsAppLink>
+                  </p>
                 </div>
               </div>
             </div>
             <div className="map-frame">
               <iframe
-                title="Mapa da Moriá Auto Elétrica na Avenida Lídio Magalhães, Jardim Primavera, Rondonópolis"
+                title="Mapa da Moriá Auto Elétrica"
                 src={`https://www.google.com/maps?q=${mapQuery}&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -334,37 +299,83 @@ function Home() {
         </section>
       </main>
 
+      {/* RODAPÉ COM LINK DISCRETO PARA ÁREA ADM */}
       <footer className="footer">
         <div className="container-wide footer-main">
           <div>
-            <a href="#inicio" aria-label="Voltar ao início" data-testid="link-footer-home">
-              <img className="footer-logo" src="/moria-logo.jpeg" alt="Moriá Auto Elétrica" width={1024} height={512} loading="lazy" />
-            </a>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setLogoGlow((prev) => !prev)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') setLogoGlow((prev) => !prev);
+              }}
+              className="footer-logo-link"
+              aria-label="Logo Moriá Auto Elétrica"
+              title="Toque ou passe o mouse para iluminar"
+            >
+              <img
+                className={`footer-logo-pure ${logoGlow ? 'glow-active' : ''}`}
+                src="/moria-logo-clean.png"
+                alt="Moriá Auto Elétrica"
+                width={1024}
+                height={551}
+                loading="lazy"
+              />
+            </div>
             <p>Elétrica e ar-condicionado automotivo com diagnóstico, cuidado e transparência em Rondonópolis.</p>
           </div>
           <div>
             <h3>Navegue</h3>
             <nav className="footer-links" aria-label="Navegação do rodapé">
-              {navItems.map((item) => <a key={item.href} href={item.href} data-testid={`link-footer-${item.href.slice(1)}`}>{item.label}</a>)}
+              {navItems.map((item) => (
+                <a key={item.href} href={item.href} data-testid={`link-footer-${item.href.slice(1)}`}>
+                  {item.label}
+                </a>
+              ))}
             </nav>
           </div>
           <div>
             <h3>Encontre e fale conosco</h3>
-            <div className="footer-contact"><MapPin size={17} aria-hidden="true" /><span>{address}</span></div>
-            <div className="footer-contact"><Clock3 size={17} aria-hidden="true" /><span>Segunda a Sexta-feira, 07:30 às 11:00 e 13:00 às 18:00</span></div>
-            <div className="footer-contact"><Phone size={17} aria-hidden="true" /><a href="tel:+5566996954476" data-testid="link-footer-phone">(66) 99695-4476</a></div>
+            <div className="footer-contact">
+              <MapPin size={17} aria-hidden="true" />
+              <span>{settings.address}</span>
+            </div>
+            <div className="footer-contact">
+              <Clock3 size={17} aria-hidden="true" />
+              <span>{settings.openingHours}</span>
+            </div>
+            <div className="footer-contact">
+              <Phone size={17} aria-hidden="true" />
+              <WhatsAppLink
+                className="hover:text-white transition"
+                testId="link-footer-phone"
+                whatsappNumber={settings.whatsappNumber}
+                whatsappMessage={settings.whatsappMessage}
+              >
+                {settings.phone}
+              </WhatsAppLink>
+            </div>
           </div>
         </div>
-        <div className="container-wide footer-bottom">
+
+        <div className="container-wide footer-bottom flex flex-wrap items-center justify-between gap-4">
           <span>Moriá Auto Elétrica e Ar Condicionado Automotivo · Rondonópolis - MT</span>
-          <a href="#inicio" data-testid="link-back-to-top">Voltar ao início ↑</a>
+          <div className="flex items-center gap-6">
+            <a
+              href="/admin"
+              className="inline-flex items-center gap-1.5 opacity-40 hover:opacity-100 transition text-[11px] text-slate-300"
+              title="Acesso restrito para administradores"
+            >
+              <Lock size={12} aria-hidden="true" />
+              Área ADM
+            </a>
+            <a href="#inicio" data-testid="link-back-to-top">
+              Voltar ao início ↑
+            </a>
+          </div>
         </div>
       </footer>
-
-      <WhatsAppLink className="whatsapp-float" testId="link-floating-whatsapp">
-        <Phone size={20} aria-hidden="true" />
-        <span>Fale pelo WhatsApp</span>
-      </WhatsAppLink>
     </div>
   );
 }
@@ -374,6 +385,7 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>
@@ -385,13 +397,15 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
-function App() {
+export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
+        <SiteProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+        </SiteProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
