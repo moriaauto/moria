@@ -120,23 +120,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
   },
 ];
 
-const DEFAULT_GALLERY: GalleryImage[] = [
-  {
-    id: 'gal-1',
-    url: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1000&q=80',
-    title: 'Oficina Moriá - Diagnóstico e precisão',
-  },
-  {
-    id: 'gal-2',
-    url: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=1000&q=80',
-    title: 'Manutenção de ar-condicionado e elétrica',
-  },
-  {
-    id: 'gal-3',
-    url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1000&q=80',
-    title: 'Atendimento para linha leve e pesada',
-  },
-];
+const DEFAULT_GALLERY: GalleryImage[] = [];
 
 const STORAGE_KEY_SETTINGS = 'moria_site_settings';
 const STORAGE_KEY_SERVICES = 'moria_site_services';
@@ -227,7 +211,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .order('order_index', { ascending: true });
 
-        if (!errGallery && dbGallery && dbGallery.length > 0) {
+        if (!errGallery && dbGallery) {
           const mapped = dbGallery.map((g) => ({
             id: g.id,
             url: g.url,
