@@ -949,7 +949,7 @@ export default function AdminPage() {
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs space-y-2">
                 <div>
                   <span className="text-slate-500">Projeto URL:</span>{' '}
-                  <span className="text-blue-400">https://blpmzlapnewxqdvdpsyby.supabase.co</span>
+                  <span className="text-blue-400">https://blpmzlapnewxqdvpsyby.supabase.co</span>
                 </div>
                 <div>
                   <span className="text-slate-500">Status:</span>{' '}
