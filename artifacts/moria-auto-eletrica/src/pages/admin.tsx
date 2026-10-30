@@ -97,55 +97,74 @@ export default function AdminPage() {
     setTimeout(() => setSaveFeedback(null), 3000);
   };
 
-  // Upload de arquivo de imagem (converte para base64 WebP compactado)
+  // Upload de arquivo de imagem (converte para base64 JPEG otimizado)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const inputElement = e.target;
+    const file = inputElement.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     const reader = new FileReader();
 
+    reader.onerror = () => {
+      setIsUploading(false);
+      inputElement.value = '';
+      showToast('Erro ao ler arquivo de imagem.');
+    };
+
     reader.onload = (event) => {
       const img = new Image();
-      img.onload = () => {
-        // Redimensionar mantendo proporção com max 1280px para otimização
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const maxDim = 1280;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-          addGalleryImage({
-            url: compressedDataUrl,
-            title: newPhotoTitle.trim() || file.name.replace(/\.[^/.]+$/, ''),
-          });
-
-          setNewPhotoTitle('');
-          showToast('Foto adicionada com sucesso à galeria!');
-        }
+      img.onerror = () => {
         setIsUploading(false);
+        inputElement.value = '';
+        showToast('Formato de imagem inválido.');
+      };
+
+      img.onload = async () => {
+        try {
+          // Redimensionar mantendo proporção com max 1024px para otimização web e slider
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1024;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Qualidade 0.78 reduz drásticamente o tamanho do base64 sem perda visual
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.78);
+
+            await addGalleryImage({
+              url: compressedDataUrl,
+              title: newPhotoTitle.trim() || file.name.replace(/\.[^/.]+$/, ''),
+            });
+
+            setNewPhotoTitle('');
+            showToast('Foto adicionada com sucesso à galeria!');
+          }
+        } catch (err: any) {
+          showToast('Erro ao processar imagem: ' + (err?.message || 'erro'));
+        } finally {
+          setIsUploading(false);
+          inputElement.value = '';
+        }
       };
       img.src = event.target?.result as string;
     };
 
     reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const handleAddUrlPhoto = (e: React.FormEvent) => {
@@ -944,7 +963,7 @@ export default function AdminPage() {
                   Se você desejar que o banco de dados armazene as tabelas diretamente na nuvem, execute o código abaixo no SQL Editor do seu Supabase Dashboard:
                 </p>
                 <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[11px] text-slate-300 font-mono overflow-x-auto select-all">
-{`-- Criar tabelas da Moriá Auto Elétrica
+{`-- 1. Criar tabelas da Moriá Auto Elétrica
 create table if not exists site_settings (
   id text primary key,
   content jsonb,
@@ -964,21 +983,32 @@ create table if not exists site_gallery (
   id text primary key,
   url text,
   title text,
-  order_index int
+  order_index int,
+  created_at timestamp with time zone default now()
 );
 
--- Habilitar leitura pública para os visitantes do site
+-- 2. Habilitar Row Level Security (RLS)
 alter table site_settings enable row level security;
 alter table site_services enable row level security;
 alter table site_gallery enable row level security;
 
+-- 3. Limpar políticas existentes para evitar duplicidade
+drop policy if exists "Permitir leitura pública settings" on site_settings;
+drop policy if exists "Permitir leitura pública services" on site_services;
+drop policy if exists "Permitir leitura pública gallery" on site_gallery;
+drop policy if exists "Permitir escrita total settings" on site_settings;
+drop policy if exists "Permitir escrita total services" on site_services;
+drop policy if exists "Permitir escrita total gallery" on site_gallery;
+
+-- 4. Leitura pública para visitantes
 create policy "Permitir leitura pública settings" on site_settings for select using (true);
 create policy "Permitir leitura pública services" on site_services for select using (true);
 create policy "Permitir leitura pública gallery" on site_gallery for select using (true);
 
-create policy "Permitir escrita total settings" on site_settings for all using (true);
-create policy "Permitir escrita total services" on site_services for all using (true);
-create policy "Permitir escrita total gallery" on site_gallery for all using (true);`}
+-- 5. Escrita total para inserção e exclusão (Painel Admin)
+create policy "Permitir escrita total settings" on site_settings for all using (true) with check (true);
+create policy "Permitir escrita total services" on site_services for all using (true) with check (true);
+create policy "Permitir escrita total gallery" on site_gallery for all using (true) with check (true);`}
                 </pre>
               </div>
 

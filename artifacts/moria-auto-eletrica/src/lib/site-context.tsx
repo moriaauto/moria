@@ -216,14 +216,18 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .order('order_index', { ascending: true });
 
-        if (!errGallery && dbGallery) {
+        if (!errGallery && dbGallery && dbGallery.length > 0) {
           const mapped = dbGallery.map((g) => ({
             id: g.id,
             url: g.url,
             title: g.title,
           }));
           setGallery(mapped);
-          localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(mapped));
+          try {
+            localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(mapped));
+          } catch (e) {
+            console.warn('Erro ao salvar galeria no cache local:', e);
+          }
         }
 
         setSyncStatus('success');
@@ -318,7 +322,11 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     const updated = [...gallery, newImage];
     setGallery(updated);
     try {
-      localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(updated));
+      try {
+        localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(updated));
+      } catch (storageErr) {
+        console.warn('Cache local de fotos cheio (localStorage quota):', storageErr);
+      }
       const { error } = await supabase.from('site_gallery').insert({
         id: newImage.id,
         url: newImage.url,

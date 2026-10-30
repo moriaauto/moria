@@ -10,6 +10,13 @@ export function GallerySlider() {
 
   const total = gallery.length;
 
+  // Garante que o índice atual seja válido quando o total de fotos mudar
+  useEffect(() => {
+    if (currentIndex >= total && total > 0) {
+      setCurrentIndex(0);
+    }
+  }, [currentIndex, total]);
+
   useEffect(() => {
     if (total <= 1 || isHovered) return;
 
