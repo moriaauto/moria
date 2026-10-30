@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   Database,
@@ -24,6 +25,7 @@ import {
   ShieldCheck,
   Clock,
   Phone,
+  X,
 } from 'lucide-react';
 import { useSiteData, ServiceItem } from '@/lib/site-context';
 
@@ -41,6 +43,8 @@ export default function AdminPage() {
     deleteGalleryImage,
     resetToDefaults,
     isSyncing,
+    supabaseWriteError,
+    clearSupabaseError,
   } = useSiteData();
 
   // Autenticação simples com PIN/senha
@@ -238,6 +242,22 @@ export default function AdminPage() {
         <div className="fixed top-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-sm font-semibold animate-in fade-in slide-in-from-top-4">
           <Check size={18} />
           {saveFeedback}
+        </div>
+      )}
+
+      {/* Banner de erro Supabase */}
+      {supabaseWriteError && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-red-700 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-semibold max-w-xl w-full mx-4 animate-in fade-in slide-in-from-top-4">
+          <AlertTriangle size={18} className="shrink-0" />
+          <span className="flex-1">{supabaseWriteError}</span>
+          <button
+            type="button"
+            onClick={clearSupabaseError}
+            className="p-1 hover:bg-red-600 rounded transition"
+            aria-label="Fechar erro"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 

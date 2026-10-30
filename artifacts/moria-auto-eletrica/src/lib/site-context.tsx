@@ -139,6 +139,8 @@ interface SiteContextType {
   resetToDefaults: () => void;
   isSyncing: boolean;
   syncStatus: 'idle' | 'success' | 'fallback';
+  supabaseWriteError: string | null;
+  clearSupabaseError: () => void;
 }
 
 const SiteContext = createContext<SiteContextType | null>(null);
@@ -173,6 +175,9 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'fallback'>('idle');
+  const [supabaseWriteError, setSupabaseWriteError] = useState<string | null>(null);
+
+  const clearSupabaseError = () => setSupabaseWriteError(null);
 
   // Tenta sincronizar com Supabase ao iniciar
   useEffect(() => {
@@ -236,11 +241,12 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     setSettings(updated);
     try {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
-      await supabase
+      const { error } = await supabase
         .from('site_settings')
         .upsert({ id: 'main', content: updated, updated_at: new Date().toISOString() });
-    } catch {
-      // Fallback local sempre salvo
+      if (error) setSupabaseWriteError('Erro ao salvar textos no Supabase: ' + error.message);
+    } catch (e: any) {
+      setSupabaseWriteError('Sem conexão com o Supabase: ' + (e?.message || 'erro desconhecido'));
     } finally {
       setIsSyncing(false);
     }
@@ -256,7 +262,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     setServices(updated);
     try {
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(updated));
-      await supabase.from('site_services').insert({
+      const { error } = await supabase.from('site_services').insert({
         id: newService.id,
         icon: newService.icon,
         title: newService.title,
@@ -264,8 +270,9 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         foot: newService.foot,
         order_index: updated.length,
       });
-    } catch {
-      // Fallback
+      if (error) setSupabaseWriteError('Erro ao salvar serviço no Supabase: ' + error.message);
+    } catch (e: any) {
+      setSupabaseWriteError('Sem conexão com o Supabase: ' + (e?.message || 'erro desconhecido'));
     } finally {
       setIsSyncing(false);
     }
@@ -277,9 +284,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     setServices(updated);
     try {
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(updated));
-      await supabase.from('site_services').update(partial).eq('id', id);
-    } catch {
-      // Fallback
+      const { error } = await supabase.from('site_services').update(partial).eq('id', id);
+      if (error) setSupabaseWriteError('Erro ao atualizar serviço no Supabase: ' + error.message);
+    } catch (e: any) {
+      setSupabaseWriteError('Sem conexão com o Supabase: ' + (e?.message || 'erro desconhecido'));
     } finally {
       setIsSyncing(false);
     }
@@ -291,9 +299,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     setServices(updated);
     try {
       localStorage.setItem(STORAGE_KEY_SERVICES, JSON.stringify(updated));
-      await supabase.from('site_services').delete().eq('id', id);
-    } catch {
-      // Fallback
+      const { error } = await supabase.from('site_services').delete().eq('id', id);
+      if (error) setSupabaseWriteError('Erro ao excluir serviço no Supabase: ' + error.message);
+    } catch (e: any) {
+      setSupabaseWriteError('Sem conexão com o Supabase: ' + (e?.message || 'erro desconhecido'));
     } finally {
       setIsSyncing(false);
     }
@@ -310,14 +319,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     setGallery(updated);
     try {
       localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(updated));
-      await supabase.from('site_gallery').insert({
+      const { error } = await supabase.from('site_gallery').insert({
         id: newImage.id,
         url: newImage.url,
         title: newImage.title,
         order_index: updated.length,
       });
-    } catch {
-      // Fallback
+      if (error) setSupabaseWriteError('Erro ao salvar foto no Supabase: ' + error.message);
+    } catch (e: any) {
+      setSupabaseWriteError('Sem conexão com o Supabase: ' + (e?.message || 'erro desconhecido'));
     } finally {
       setIsSyncing(false);
     }
@@ -329,9 +339,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     setGallery(updated);
     try {
       localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(updated));
-      await supabase.from('site_gallery').delete().eq('id', id);
-    } catch {
-      // Fallback
+      const { error } = await supabase.from('site_gallery').delete().eq('id', id);
+      if (error) setSupabaseWriteError('Erro ao excluir foto no Supabase: ' + error.message);
+    } catch (e: any) {
+      setSupabaseWriteError('Sem conexão com o Supabase: ' + (e?.message || 'erro desconhecido'));
     } finally {
       setIsSyncing(false);
     }
@@ -361,6 +372,8 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         resetToDefaults,
         isSyncing,
         syncStatus,
+        supabaseWriteError,
+        clearSupabaseError,
       }}
     >
       {children}
